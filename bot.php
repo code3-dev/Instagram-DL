@@ -37,7 +37,7 @@ if (class_exists(API::class)) {
 class MyEventHandler extends SimpleEventHandler
 {
     public const START = "به ربات دانلود اینستاگرام خوش آمدید!\n\n" .
-    "لطفاً یک لینک از اینستاگرام ارسال کنید تا من آن را برای شما دانلود کنم. فقط کافیست لینک مورد نظر خود را اینجا قرار دهید.";
+        "لطفاً یک لینک از اینستاگرام ارسال کنید تا من آن را برای شما دانلود کنم. فقط کافیست لینک مورد نظر خود را اینجا قرار دهید.";
 
 
     public const ADMIN = 'h3dev';
@@ -74,7 +74,31 @@ class MyEventHandler extends SimpleEventHandler
                     $timestamp = date('Ymd_His');
                     $randomNumber = rand(1000, 9999);
                     $name = "video_{$timestamp}_{$randomNumber}.mp4";
-                    $this->cmdUpload(new RemoteUrl($response['data']['url']), $name, $message);
+                    if (isset($response['data']['url'])) {
+                        $timestamp = date('Ymd_His');
+                        $randomNumber = rand(1000, 9999);
+                        $name = "video_{$timestamp}_{$randomNumber}.mp4";
+                        $caption = "قدرت گرفته از @" . self::BOT_USERNAME;
+                        $this->cmdUpload(new RemoteUrl($response['data']['url']), $name, $caption, $message);
+                    } elseif (isset($response['data']['picker'])) {
+                        $index = 1;
+                        foreach ($response['data']['picker'] as $item) {
+                            $timestamp = date('Ymd_His');
+                            $randomNumber = rand(1000, 9999);
+                            $caption = "فایل {$index}\nقدرت گرفته از @" . self::BOT_USERNAME;
+
+                            if ($item['type'] === 'video') {
+                                $name = "video_{$timestamp}_{$randomNumber}.mp4";
+                                $this->cmdUpload(new RemoteUrl($item['url']), $name, $caption, $message, 'video');
+                            } elseif ($item['type'] === 'photo') {
+                                $name = "photo_{$timestamp}_{$randomNumber}.jpg";
+                                $this->cmdUpload(new RemoteUrl($item['url']), $name, $caption, $message, 'photo');
+                            }
+                            $index++;
+                        }
+                    } else {
+                        $message->reply("دانلود ویدیو با شکست مواجه شد.", ParseMode::MARKDOWN);
+                    }
                 } catch (Exception $e) {
                     $message->reply("دانلود ویدیو با شکست مواجه شد: " . $e->getMessage(), ParseMode::MARKDOWN);
                 }
@@ -84,7 +108,7 @@ class MyEventHandler extends SimpleEventHandler
         }
     }
 
-    private function cmdUpload(Media|RemoteUrl|ReadableStream $file, string $name, PrivateMessage $message): void
+    private function cmdUpload(Media|RemoteUrl|ReadableStream $file, string $name, string $caption, PrivateMessage $message): void
     {
         try {
             $sent = $message->reply('در حال آماده‌سازی...');
@@ -114,7 +138,7 @@ class MyEventHandler extends SimpleEventHandler
                         ['_' => 'documentAttributeFilename', 'file_name' => $name],
                     ],
                 ],
-                message: 'قدرت گرفته از @' . self::BOT_USERNAME
+                message: $caption
             );
             $sent->delete();
         } catch (Throwable $e) {

@@ -85,3 +85,17 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Acknowledgments
 
 - This bot is built using [MadelineProto](https://docs.madelineproto.xyz).
+
+## Integration with PHP YTDL Library
+
+This bot utilizes the YTDL class from the PHP YTDL Library to handle video downloads. Here is an overview of the YTDL class:
+
+### YTDL Class
+
+The YTDL class handles the configuration and sending of requests to a video downloading API. It allows you to set various parameters for downloading videos or audio, such as video quality, codec, audio format, and filename pattern. The class provides methods to enable or disable specific features like audio-only downloads, full audio from TikTok videos, and metadata options.
+
+#### Sources
+
+- [Cobalt Code](https://github.com/imputnet/cobalt)
+- [Cobalt Site](https://cobalt.tools)
+- [Cobalt API Docs](https://github.com/imputnet/cobalt/blob/current/docs/api.md)
