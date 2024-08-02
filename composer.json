@@ -1,0 +1,16 @@
+{
+    "name": "pira/instagram",
+    "description": "Telegram Instagram-DL bot based on MadelineProto",
+    "type": "project",
+    "require": {
+        "danog/madelineproto": "^8"
+    },
+    "minimum-stability": "beta",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Hossein Pira",
+            "email": "h3dev.pira@gmail.com"
+        }
+    ]
+}
