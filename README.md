@@ -13,9 +13,11 @@ Welcome to the **Instagram-DL Telegram Bot** project! This bot allows you to dow
 ### Requirements
 
 - PHP 8.2 or higher
-- Composer
+- Composer (optional, but recommended)
 
 ### Setup
+
+#### Method 1: Using Git and Composer
 
 1. **Clone the repository:**
    ```sh
@@ -29,6 +31,35 @@ Welcome to the **Instagram-DL Telegram Bot** project! This bot allows you to dow
    ```
 
 3. **Run the bot:**
+   ```sh
+   php bot.php
+   ```
+
+#### Method 2: Using Composer Project Creator
+
+1. **Create the project:**
+   ```sh
+   composer create-project pira/instagram mybot
+   ```
+
+2. **Navigate to the project directory:**
+   ```sh
+   cd mybot
+   ```
+
+3. **Run the bot:**
+   ```sh
+   php bot.php
+   ```
+
+#### Method 3: Running bot.php Only
+
+1. **Download the `bot.php` file:**
+   ```sh
+   wget https://raw.githubusercontent.com/code3-dev/Instagram-DL/master/bot.php
+   ```
+
+2. **Run the bot:**
    ```sh
    php bot.php
    ```
