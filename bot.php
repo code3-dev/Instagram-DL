@@ -39,7 +39,6 @@ class MyEventHandler extends SimpleEventHandler
     public const START = "به ربات دانلود اینستاگرام خوش آمدید!\n\n" .
         "لطفاً یک لینک از اینستاگرام ارسال کنید تا من آن را برای شما دانلود کنم. فقط کافیست لینک مورد نظر خود را اینجا قرار دهید.";
 
-
     public const ADMIN = 'h3dev';
     public const BOT_USERNAME = 'TestIGDLv3bot';
 
@@ -67,39 +66,41 @@ class MyEventHandler extends SimpleEventHandler
         $url = trim($message->message);
         if ($url != "/start") {
             if (filter_var($url, FILTER_VALIDATE_URL) && (str_starts_with($url, "https://www.instagram.com") || str_starts_with($url, "https://instagram.com"))) {
+                $sent = $message->reply('در حال دریافت اطلاعات...');
                 try {
                     $ytdl = new YTDL($url);
                     $response = $ytdl->sendRequest();
 
                     $timestamp = date('Ymd_His');
                     $randomNumber = rand(1000, 9999);
-                    $name = "video_{$timestamp}_{$randomNumber}.mp4";
+
                     if (isset($response['data']['url'])) {
-                        $timestamp = date('Ymd_His');
-                        $randomNumber = rand(1000, 9999);
+                        $sent->delete();
                         $name = "video_{$timestamp}_{$randomNumber}.mp4";
                         $caption = "قدرت گرفته از @" . self::BOT_USERNAME;
-                        $this->cmdUpload(new RemoteUrl($response['data']['url']), $name, $caption, $message);
+                        $this->cmdUpload(new RemoteUrl($response['data']['url']), $name, $caption, $message, 'video');
                     } elseif (isset($response['data']['picker'])) {
                         $index = 1;
                         foreach ($response['data']['picker'] as $item) {
+                            $sent->delete();
                             $timestamp = date('Ymd_His');
                             $randomNumber = rand(1000, 9999);
+                            $name = ($item['type'] === 'video') ? "video_{$timestamp}_{$randomNumber}.mp4" : "photo_{$timestamp}_{$randomNumber}.jpg";
                             $caption = "فایل {$index}\nقدرت گرفته از @" . self::BOT_USERNAME;
 
                             if ($item['type'] === 'video') {
-                                $name = "video_{$timestamp}_{$randomNumber}.mp4";
                                 $this->cmdUpload(new RemoteUrl($item['url']), $name, $caption, $message, 'video');
                             } elseif ($item['type'] === 'photo') {
-                                $name = "photo_{$timestamp}_{$randomNumber}.jpg";
                                 $this->cmdUpload(new RemoteUrl($item['url']), $name, $caption, $message, 'photo');
                             }
                             $index++;
                         }
                     } else {
-                        $message->reply("دانلود ویدیو با شکست مواجه شد.", ParseMode::MARKDOWN);
+                        $sent->delete();
+                        $message->reply("دانلود ویدیو با شکست مواجه شد. API در حال بروز رسانی است.", ParseMode::MARKDOWN);
                     }
                 } catch (Exception $e) {
+                    $sent->delete();
                     $message->reply("دانلود ویدیو با شکست مواجه شد: " . $e->getMessage(), ParseMode::MARKDOWN);
                 }
             } else {
@@ -108,11 +109,11 @@ class MyEventHandler extends SimpleEventHandler
         }
     }
 
-    private function cmdUpload(Media|RemoteUrl|ReadableStream $file, string $name, string $caption, PrivateMessage $message): void
+    private function cmdUpload(Media|RemoteUrl|ReadableStream $file, string $name, string $caption, PrivateMessage $message, string $type = 'document'): void
     {
         try {
             $sent = $message->reply('در حال آماده‌سازی...');
-            $file = new FileCallback(
+            $fileCallback = new FileCallback(
                 $file,
                 static function ($progress) use ($sent): void {
                     static $prev = 0;
@@ -126,20 +127,53 @@ class MyEventHandler extends SimpleEventHandler
                         $sent->editText("پیشرفت آپلود: $progress%");
                     } catch (RPCErrorException $e) {
                     }
-                },
+                }
             );
-            $this->messages->sendMedia(
-                peer: $message->chatId,
-                reply_to_msg_id: $message->id,
-                media: [
-                    '_'          => 'inputMediaUploadedDocument',
-                    'file'       => $file,
-                    'attributes' => [
-                        ['_' => 'documentAttributeFilename', 'file_name' => $name],
+
+            if ($type === 'photo') {
+                // Send as photo
+                $this->messages->sendMedia(
+                    peer: $message->chatId,
+                    reply_to_msg_id: $message->id,
+                    media: [
+                        '_' => 'inputMediaUploadedPhoto',
+                        'file' => $fileCallback,
                     ],
-                ],
-                message: $caption
-            );
+                    message: $caption
+                );
+            } elseif ($type === 'video') {
+                // Send as video
+                $mediaAttributes = [
+                    ['_' => 'documentAttributeFilename', 'file_name' => $name],
+                    ['_' => 'documentAttributeVideo', 'supports_streaming' => true]
+                ];
+                $this->messages->sendMedia(
+                    peer: $message->chatId,
+                    reply_to_msg_id: $message->id,
+                    media: [
+                        '_' => 'inputMediaUploadedDocument',
+                        'file' => $fileCallback,
+                        'attributes' => $mediaAttributes,
+                    ],
+                    message: $caption
+                );
+            } else {
+                // Default to document if the type is not specified correctly
+                $mediaAttributes = [
+                    ['_' => 'documentAttributeFilename', 'file_name' => $name]
+                ];
+                $this->messages->sendMedia(
+                    peer: $message->chatId,
+                    reply_to_msg_id: $message->id,
+                    media: [
+                        '_' => 'inputMediaUploadedDocument',
+                        'file' => $fileCallback,
+                        'attributes' => $mediaAttributes,
+                    ],
+                    message: $caption
+                );
+            }
+
             $sent->delete();
         } catch (Throwable $e) {
             if (!str_contains($e->getMessage(), 'Could not connect to URI') && !($e instanceof UriException) && !str_contains($e->getMessage(), 'URI')) {
